@@ -4,7 +4,7 @@
 local playerStats = {
 	strength = 0,
 	defense = 0,
-	magicPower = 0
+	magic = 0
 }
 
 -- ReplicatedStorage ve BindableEvent'e erişim
@@ -15,7 +15,6 @@ local trainingModeChanged = ReplicatedStorage:WaitForChild("TrainingModeChanged"
 local canTrain = true
 local cooldownTime = 1
 local currentMode = nil
-local isMeditating = false
 
 -- Antrenman fonksiyonları
 local function trainStrength()
@@ -44,48 +43,34 @@ local function trainDefense()
 	end
 end
 
-local function startMagicMode()
+local function trainMagic()
 	if currentMode ~= "magic" then return end -- Sadece Magic modunda çalış
-	if not isMeditating then
-		isMeditating = true
+	if canTrain then
+		canTrain = false
 		print("Magic Mode Selected! Meditation Started: Gaining Magic Power...")
 
 		local humanoid = game.Players.LocalPlayer.Character:WaitForChild("Humanoid")
 		humanoid.WalkSpeed = 0
 		humanoid.JumpPower = 0
 
-		while isMeditating and currentMode == "magic" do
-			playerStats.magicPower = playerStats.magicPower + 1
-			print("Magic Power +1! Total Magic Power: " .. playerStats.magicPower)
+		while trainMagic and currentMode == "magic" do
+			playerStats.magic = playerStats.magic + 1
+			print("Magic +1! Total Magic: " .. playerStats.magic)
 			wait(1.5)
 		end
 	end
 end
 
-local function stopMagicMode()
-	if isMeditating then
-		isMeditating = false
-		print("Magic Mode Unselected! Meditation Stopped!")
-
-		local humanoid = game.Players.LocalPlayer.Character:WaitForChild("Humanoid")
-		humanoid.WalkSpeed = 16
-		humanoid.JumpPower = 50
-	end
-end
 
 -- Aktif modu güncelle
 trainingModeChanged.Event:Connect(function(newMode)
 	if newMode == "unselected" then
 		currentMode = nil
 		print("All modes unselected!")
-		stopMagicMode()
 	elseif currentMode == newMode then
 		-- Mod zaten aktifse kapat
 		currentMode = nil
 		print(newMode .. " Mode Unselected!")
-		if newMode == "magic" then
-			stopMagicMode()
-		end
 	else
 		-- Yeni modu seç
 		currentMode = newMode
@@ -95,7 +80,7 @@ trainingModeChanged.Event:Connect(function(newMode)
 		elseif newMode == "defense" then
 			trainDefense()
 		elseif newMode == "magic" then
-			startMagicMode()
+			trainMagic()
 		end
 	end
 end)

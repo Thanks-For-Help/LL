@@ -1,0 +1,145 @@
+-- Responsive Training Simulator UI
+-- Place this LocalScript under StarterGui
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local trainingModeChanged = ReplicatedStorage:WaitForChild("TrainingModeChanged") -- BindableEvent
+
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Create ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "TrainingSimulatorUI"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = playerGui
+
+-- Left Menu Frame
+local leftMenu = Instance.new("Frame")
+leftMenu.Name = "LeftMenu"
+leftMenu.Size = UDim2.new(0.06, 0, 0.95, 0)
+leftMenu.Position = UDim2.new(0.01, 0, 0.15, 0)
+leftMenu.BackgroundTransparency = 1
+leftMenu.Parent = screenGui
+
+local menuIcons = {
+	{Name = "Quests", Image = "rbxassetid://80421839396161"},
+	{Name = "Inventory", Image = "rbxassetid://94087028304900"},
+	{Name = "Powers", Image = "rbxassetid://72354312889152"},
+	{Name = "Stats", Image = "rbxassetid://140361436026295"},
+	{Name = "Shop", Image = "rbxassetid://74237347043649"},
+	{Name = "Settings", Image = "rbxassetid://85881925859735"},
+}
+
+for i, iconInfo in ipairs(menuIcons) do
+	local btn = Instance.new("ImageButton")
+	btn.Name = iconInfo.Name
+	btn.Image = iconInfo.Image
+	btn.Size = UDim2.new(1, 0, 0.22, 0)
+	btn.Position = UDim2.new(0, 0, (i-1) * 0.12, 0)
+	btn.BackgroundTransparency = 1
+	btn.Parent = leftMenu
+
+	local aspect = Instance.new("UIAspectRatioConstraint")
+	aspect.AspectRatio = 1
+	aspect.Parent = btn
+
+	btn.MouseEnter:Connect(function()
+		btn:TweenSize(UDim2.new(1.1, 0, 0.132, 0), "Out", "Quad", 0.2, true)
+	end)
+	btn.MouseLeave:Connect(function()
+		btn:TweenSize(UDim2.new(1, 0, 0.12, 0), "Out", "Quad", 0.2, true)
+	end)
+end
+
+-- Training Buttons Frame
+local trainFrame = Instance.new("Frame")
+trainFrame.Name = "TrainingFrame"
+trainFrame.Size = UDim2.new(0.35, 0, 0.12, 0)
+trainFrame.Position = UDim2.new(0.5, 0, 0.85, 0)
+trainFrame.AnchorPoint = Vector2.new(0.5, 0)
+trainFrame.BackgroundTransparency = 1
+trainFrame.Parent = screenGui
+
+local trainings = {
+	{Key="1", Label="Strength", Image="rbxassetid://129109019311375"},
+	{Key="2", Label="Endurance", Image="rbxassetid://132037537975205"},
+	{Key="3", Label="Magic", Image="rbxassetid://72143564491116"},
+}
+
+local activeButton = nil -- Şu an aktif olan buton referansı
+local defaultColor = Color3.fromRGB(255, 255, 255) -- Varsayılan renk
+local activeColor = Color3.fromRGB(200, 200, 255) -- Aktif renk (biraz daha açık)
+
+for idx, info in ipairs(trainings) do
+	local btn = Instance.new("ImageButton")
+	btn.Name = info.Label
+	btn.Image = info.Image
+	btn.Size = UDim2.new(0.3, 0, 1, 0)
+	btn.Position = UDim2.new((idx - 1) * 0.33, 0, 0, 0)
+	btn.BackgroundTransparency = 1
+	btn.ImageColor3 = defaultColor -- Varsayılan rengi ayarla
+	btn.Parent = trainFrame
+
+	local aspect = Instance.new("UIAspectRatioConstraint")
+	aspect.AspectRatio = 1
+	aspect.Parent = btn
+
+	local keyLabel = Instance.new("TextLabel")
+	keyLabel.Text = "["..info.Key.."]"
+	keyLabel.Size = UDim2.new(1, 0, 0.3, 0)
+	keyLabel.Position = UDim2.new(0, 0, 1, -10)
+	keyLabel.BackgroundTransparency = 1
+	keyLabel.TextColor3 = Color3.new(1,1,1)
+	keyLabel.TextScaled = true
+	keyLabel.Parent = btn
+
+	-- Görsel geri dönüş: Butonu aktif yap
+	local function setActive()
+		if activeButton == btn then
+			-- Eğer zaten aktifse, seçimi kaldır
+			btn.ImageColor3 = defaultColor
+			activeButton = nil
+			trainingModeChanged:Fire("unselected") -- Mod devre dışı
+		else
+			-- Diğer butonların durumunu sıfırla
+			if activeButton then
+				activeButton.ImageColor3 = defaultColor
+			end
+
+			-- Bu butonu aktif yap
+			btn.ImageColor3 = activeColor
+			activeButton = btn
+
+			-- BindableEvent'i tetikleyerek modu bildir
+			trainingModeChanged:Fire(info.Label:lower()) -- Örn: "strength", "endurance", "magic"
+		end
+	end
+
+	-- Butona tıklanınca aktif yap
+	btn.MouseButton1Click:Connect(setActive)
+
+	-- Klavyeden tuşa basıldığında aktif yap
+	game:GetService("UserInputService").InputBegan:Connect(function(input, gameProcessed)
+		if not gameProcessed then
+			-- Doğru KeyCode isimlerini kullanarak klavye girişlerini işle
+			if input.KeyCode == Enum.KeyCode.One then
+				setActive() -- Strength moduna geçiş
+			elseif input.KeyCode == Enum.KeyCode.Two then
+				setActive() -- Endurance moduna geçiş
+			elseif input.KeyCode == Enum.KeyCode.Three then
+				setActive() -- Magic moduna geçiş
+			end
+		end
+	end)
+
+	-- Fareyle üzerine gelindiğinde büyüt
+	btn.MouseEnter:Connect(function()
+		btn:TweenSize(UDim2.new(0.33, 0, 1.1, 0), "Out", "Quad", 0.2, true)
+	end)
+	btn.MouseLeave:Connect(function()
+		btn:TweenSize(UDim2.new(0.3, 0, 1, 0), "Out", "Quad", 0.2, true)
+	end)
+end

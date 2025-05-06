@@ -1,0 +1,101 @@
+-- Oyuncunun statlarını ve antrenman mekaniklerini kontrol eden temel script
+
+-- Statlar
+local playerStats = {
+	strength = 0,
+	defense = 0,
+	magicPower = 0
+}
+
+-- ReplicatedStorage ve BindableEvent'e erişim
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local trainingModeChanged = ReplicatedStorage:WaitForChild("TrainingModeChanged")
+
+-- Cooldown kontrolü
+local canTrain = true
+local cooldownTime = 1
+local currentMode = nil
+local isMeditating = false
+
+-- Antrenman fonksiyonları
+local function trainStrength()
+	if currentMode ~= "strength" then return end -- Sadece Strength modunda çalış
+	if canTrain then
+		canTrain = false
+		playerStats.strength = playerStats.strength + 1
+		print("Strength +1! Total Strength: " .. playerStats.strength)
+		wait(cooldownTime)
+		canTrain = true
+	else
+		print("Strength Training on Cooldown!")
+	end
+end
+
+local function trainDefense()
+	if currentMode ~= "defense" then return end -- Sadece Defense modunda çalış
+	if canTrain then
+		canTrain = false
+		playerStats.defense = playerStats.defense + 1
+		print("Defense +1! Total Defense: " .. playerStats.defense)
+		wait(cooldownTime)
+		canTrain = true
+	else
+		print("Defense Training on Cooldown!")
+	end
+end
+
+local function startMagicMode()
+	if currentMode ~= "magic" then return end -- Sadece Magic modunda çalış
+	if not isMeditating then
+		isMeditating = true
+		print("Magic Mode Selected! Meditation Started: Gaining Magic Power...")
+
+		local humanoid = game.Players.LocalPlayer.Character:WaitForChild("Humanoid")
+		humanoid.WalkSpeed = 0
+		humanoid.JumpPower = 0
+
+		while isMeditating and currentMode == "magic" do
+			playerStats.magicPower = playerStats.magicPower + 1
+			print("Magic Power +1! Total Magic Power: " .. playerStats.magicPower)
+			wait(1.5)
+		end
+	end
+end
+
+local function stopMagicMode()
+	if isMeditating then
+		isMeditating = false
+		print("Magic Mode Unselected! Meditation Stopped!")
+
+		local humanoid = game.Players.LocalPlayer.Character:WaitForChild("Humanoid")
+		humanoid.WalkSpeed = 16
+		humanoid.JumpPower = 50
+	end
+end
+
+-- Aktif modu güncelle
+trainingModeChanged.Event:Connect(function(newMode)
+	if newMode == "unselected" then
+		currentMode = nil
+		print("All modes unselected!")
+		stopMagicMode()
+	elseif currentMode == newMode then
+		-- Mod zaten aktifse kapat
+		currentMode = nil
+		print(newMode .. " Mode Unselected!")
+		if newMode == "magic" then
+			stopMagicMode()
+		end
+	else
+		-- Yeni modu seç
+		currentMode = newMode
+		print(newMode .. " Mode Selected!")
+		if newMode == "strength" then
+			trainStrength()
+		elseif newMode == "defense" then
+			trainDefense()
+		elseif newMode == "magic" then
+			startMagicMode()
+		end
+	end
+end)
